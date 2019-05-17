@@ -11,8 +11,11 @@ test_label_path = 'data/t10k-labels-idx1-ubyte.gz'
 train_image_path = 'data/train-images-idx3-ubyte.gz'
 train_label_path = 'data/train-labels-idx1-ubyte.gz'
 
+#----------------------------------------------------------------------------
+# Direct interaction with the dataset
 
 
+# Getting labels
 def get_label(n,train=True):
     if train:
         file = gzip.open(train_label_path,'r')
@@ -24,7 +27,7 @@ def get_label(n,train=True):
     labels = np.frombuffer(buff, dtype=np.uint8).astype(np.int64)
     return labels[-1]
 
-
+# Getting images
 def get_img(n,train=True):
     if train:
         file = gzip.open(train_image_path,'r')
@@ -39,9 +42,11 @@ def get_img(n,train=True):
     image = np.asarray(data[-1]).squeeze()
     return image
 
+# Getting both the image and the label at given index from the dataset
 def get_both(n,train=True):
     return get_label(n,train),get_img(n,train)
 
+# Returns n iamges with the given label
 def get_img_by_lbl(n,label,train=True):
     cpt=1
     imgs = []
