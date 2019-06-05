@@ -56,6 +56,39 @@ def get_img_by_lbl(n,label,train=True):
         cpt+=1
     return imgs
 
+# Returns a complete set in a list
+def get_set(train=True,n=0):
+    if train:
+        file_lbl = gzip.open(train_label_path,'r')
+        file_img = gzip.open(train_image_path,'r')
+        
+        if n == 0 :
+            n = 60000
+            
+    else :
+        
+        file_lbl = gzip.open(test_label_path,'r')
+        file_img = gzip.open(test_image_path,'r')
+        
+        if n == 0 :
+            n = 10000
+    
+    file_lbl.read(8)
+    buff = file_lbl.read(1 * n)
+    labels = np.frombuffer(buff, dtype=np.uint8).astype(np.int64)   
+    
+    image_size = 28
+    file_img.read(16)
+    buff = file_img.read(image_size * image_size * n)
+    data = np.frombuffer(buff, dtype=np.uint8).astype(np.float32)
+    data = data.reshape(n, image_size, image_size, 1)
+    
+    return [data,labels]
+    
+    
+def save_images(images, size, image_path):
+  return imsave(inverse_transform(images), size, image_path)
+
 #----------------------------------------------------------------------------
 # Functions used to print the results
 
@@ -80,11 +113,7 @@ def test():
 #    lbl,img = get_both(n)
 #    print(lbl)
 #    plt.imshow(img)
-    n = 16
-    label = 4
-    imgs = get_img_by_lbl(n,label)
-    i=0
-    show_mult_img(imgs)
+    get_set()
 
 if __name__ == "__main__":
     test()
