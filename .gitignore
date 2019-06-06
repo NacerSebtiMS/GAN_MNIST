@@ -2,6 +2,9 @@
 
 main.py
 useless_utils.py
+generated/
+models/
+
 
 # 	Jupyter Notebook
 *.ipynb

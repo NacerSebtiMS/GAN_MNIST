@@ -12,7 +12,7 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 
-import sys
+import sys,os,shutil
 
 from keras.datasets import mnist
 from keras.models import Sequential, Model, load_model
@@ -23,13 +23,24 @@ from keras.layers.convolutional import UpSampling2D, Conv2D
 from keras.optimizers import Adam
 
 
+TRAIN = True
+PREDICT = True
 
+EPOCH = 8000 + 1
+SAVE_INTERVAL = 100
+BATCH_SIZE = 32
 
 img_rows = 28
 img_cols = 28
 channels = 1
 latent_dim = 100
 img_shape = (img_rows, img_cols, channels)
+
+version = '1.0'
+
+model_path = './models'
+train_gen_path = './generated/training'
+predict_path = './generated/predict'
 
 
 def build_generator():
@@ -85,7 +96,7 @@ def build_discriminator():
 
     return Model(img, validity)       
 
-def save_imgs(epoch):
+def save_imgs(path):
     r, c = 5, 5
     noise = np.random.normal(0, 1, (r * c, latent_dim))
     gen_imgs = generator.predict(noise)
@@ -100,8 +111,13 @@ def save_imgs(epoch):
             axs[i,j].imshow(gen_imgs[cnt, :,:,0], cmap='gray')
             axs[i,j].axis('off')
             cnt += 1
-    fig.savefig("new_mnist/mnist_%d.png" % epoch)
+    fig.savefig(path+'.png')
     plt.close()
+    
+def manage_file(path):
+    if os.path.isdir(path) :
+        shutil.rmtree(path)
+    os.makedirs(path)
     
 
 
@@ -117,6 +133,10 @@ def train(epochs, batch_size=128, save_interval=50):
     # Adversarial ground truths
     valid = np.ones((batch_size, 1))
     fake = np.zeros((batch_size, 1))
+    
+    # Create directory for saved images
+    
+    manage_file(train_gen_path)
 
     for epoch in range(epochs):
 
@@ -145,12 +165,24 @@ def train(epochs, batch_size=128, save_interval=50):
         g_loss = combined.train_on_batch(noise, valid)
 
         # Plot the progress
-        print ("%d [D loss: %f, acc.: %.2f%%] [G loss: %f]" % (epoch, d_loss[0], 100*d_loss[1], g_loss))
+        print ("%d [D loss: %f, acc.: %.2f%%] [G loss: %f] - %.2f%%" % (epoch, d_loss[0], 100*d_loss[1], g_loss, 100*epoch/epochs))
 
         # If at save interval => save generated image samples
         if epoch % save_interval == 0:
-            save_imgs(epoch)
+            path  = train_gen_path + '/mnist_' + str(epoch)
+            save_imgs(path)
+            
+            path2 = model_path + '/' + str(epoch)
+            manage_file(path2)
+            generator.save(path2 + '/generator.h5')
+            #discriminator.save(path2 +'/discriminator.h5')
 
+def run(epoch=4000) :    
+    path = predict_path + '/'
+    manage_file(path)
+    save_imgs(path+'/'+version)
+    print('Succefully predicted in'+path)
+    
 optimizer = Adam(0.0002, 0.5)
 # Build and compile the discriminator
 discriminator = build_discriminator()
@@ -177,6 +209,11 @@ valid = discriminator(img)
 combined = Model(z, valid)
 combined.compile(loss='binary_crossentropy', optimizer=optimizer)
 
-train(epochs=4000, batch_size=32, save_interval=50)
+if TRAIN :
+    train(epochs=EPOCH, batch_size=BATCH_SIZE, save_interval=SAVE_INTERVAL)
+    
+generator = load_model('models/'+str(EPOCH-1)+'/generator.h5')
+if PREDICT :
+    run(EPOCH-1)
 
 
