@@ -22,9 +22,16 @@ from keras.layers.advanced_activations import LeakyReLU
 from keras.layers.convolutional import UpSampling2D, Conv2D
 from keras.optimizers import Adam
 
+# ========== Activators ==========
+# Train models
+TRAIN = False
 
-TRAIN = True
+# Predict using the last generator
 PREDICT = True
+
+# Predict using the same noise
+PREDICT_SAME_NOISE = True
+# ================================
 
 EPOCH = 8000 + 1
 SAVE_INTERVAL = 100
@@ -35,6 +42,9 @@ img_cols = 28
 channels = 1
 latent_dim = 100
 img_shape = (img_rows, img_cols, channels)
+
+
+NOISE = np.random.normal(0, 1, (5 * 5, latent_dim))
 
 version = '1.0'
 
@@ -97,9 +107,14 @@ def build_discriminator():
     return Model(img, validity)       
 
 def save_imgs(path):
-    r, c = 5, 5
-    noise = np.random.normal(0, 1, (r * c, latent_dim))
-    gen_imgs = generator.predict(noise)
+    
+    if PREDICT_SAME_NOISE :
+        gen_imgs = generator.predict(NOISE)
+    else :
+        r, c = 5, 5
+        noise = np.random.normal(0, 1, (r * c, latent_dim))
+        gen_imgs = generator.predict(noise)
+    
 
     # Rescale images 0 - 1
     gen_imgs = 0.5 * gen_imgs + 0.5
@@ -177,11 +192,11 @@ def train(epochs, batch_size=128, save_interval=50):
             generator.save(path2 + '/generator.h5')
             #discriminator.save(path2 +'/discriminator.h5')
 
-def run(epoch=4000) :    
-    path = predict_path + '/'
-    manage_file(path)
-    save_imgs(path+'/'+version)
-    print('Succefully predicted in'+path)
+def run(epoch) :    
+    path = predict_path + '/' + version
+    #manage_file(path)
+    save_imgs(path+'/'+str(epoch))
+    print('Succefully predicted in '+path)
     
 optimizer = Adam(0.0002, 0.5)
 # Build and compile the discriminator
@@ -212,8 +227,9 @@ combined.compile(loss='binary_crossentropy', optimizer=optimizer)
 if TRAIN :
     train(epochs=EPOCH, batch_size=BATCH_SIZE, save_interval=SAVE_INTERVAL)
     
-generator = load_model('models/'+str(EPOCH-1)+'/generator.h5')
 if PREDICT :
-    run(EPOCH-1)
-
+    for epoch in range(9):
+        generator = load_model('models/'+str(1000*epoch)+'/generator.h5')
+        run(epoch*1000)
+    
 
